@@ -1092,7 +1092,7 @@ class Iterator {
       window._triePage = 1;
       window._patriciaPage = 1;
       window._radixPage = 1;
-      performSearch(this.value);
+      performSearch(this.value.toLowerCase());
     });
     // Per-column show results button logic
     function toggleShowResults(column) {
