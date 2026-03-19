@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prefix Search: Trie vs Radix Tree vs Optimized Radix Tree</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: #f4f6fb;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 2.2rem;
+      letter-spacing: 1px;
+      color: #2a3a4a;
+    }
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin: 2rem 0 2.5rem 0;
+    }
+    #global-search-input {
+      width: 100%;
+      max-width: 600px;
+      padding: 1.1em 1.2em;
+      font-size: 1.2em;
+      border: 1.5px solid #bfc7d1;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+      background: #fff;
+      transition: border 0.2s;
+    }
+    #global-search-input:focus {
+      border: 1.5px solid #4f8cff;
+      outline: none;
+    }
+    #global-search-btn {
+      margin-left: 0.7em;
+      padding: 1.1em 1.5em;
+      font-size: 1.2em;
+      border: 1.5px solid #4f8cff;
+      border-radius: 8px;
+      background: #4f8cff;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s, border 0.2s;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    #global-search-btn:hover, #global-search-btn:focus {
+      background: #2566d8;
+      border-color: #2566d8;
+    }
+    .container {
+      display: flex;
+      gap: 2.5em;
+      justify-content: center;
+      align-items: flex-start;
+      margin-bottom: 3rem;
+    }
+    .search-section {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(44,62,80,0.08);
+      padding: 2em 1.5em 1.5em 1.5em;
+      flex: 1 1 0;
+      min-width: 270px;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .search-section h2 {
+      margin-bottom: 0.7em;
+      font-size: 1.25em;
+      color: #4f8cff;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+    .search-section.fuse .timing {
+      background: #4f8cff;
+    }
+    .search-section.trie .timing {
+      background: #ff9800;
+    }
+    .search-section.radix .timing {
+      background: #ffe066;
+    }
+    .timing {
+      color: #fff;
+      background: #4f8cff;
+      font-weight: bold;
+      font-size: 1.05em;
+      border-radius: 6px;
+      padding: 0.3em 0.7em;
+      margin-bottom: 0.7em;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(44,62,80,0.07);
+      letter-spacing: 0.5px;
+      display: inline-block;
+      align-self: center;
+    }
+    ul {
+      background: #f8f8f8;
+      border: 1px solid #e0e6ed;
+      border-radius: 8px;
+      padding: 0.7em 1em;
+      margin: 0;
+      font-size: 1.08em;
+      box-shadow: 0 1px 4px rgba(44,62,80,0.03);
+      min-height: 10em;
+      transition: min-height 0.2s;
+    }
+    ul:empty {
+      min-height: 0;
+      padding: 0.2em 1em;
+    }
+    li {
+      margin: 0.25em 0;
+      padding: 0.1em 0.2em;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    li:hover {
+      background: #eaf1ff;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+        gap: 1.5em;
+        align-items: stretch;
+      }
+      .search-section {
+        max-width: 100%;
+      }
+    }
+    .search-section.fuse {
+      border-color: #4f8cff;
+    }
+    .search-section.trie {
+      border-color: #ff9800;
+      background: #fff7e6;
+    }
+    .search-section.radix {
+      border-color: #ffe066;
+    }
+    .search-section.fuse h2 {
+      color: #4f8cff;
+    }
+    .search-section.trie h2 {
+      color: #ff9800;
+    }
+    .search-section.radix h2 {
+      color: #ffe066;
+    }
+    .search-section.patricia {
+      border-color: #ff9800;
+      background: #fff7e6;
+    }
+    .search-section.radixt {
+      border-color: #ffe066;
+      background: #fffbe6;
+    }
+    .search-section.patricia h2 { color: #ff9800; }
+    .search-section.radixt h2 { color: #2ecc40; }
+    #patricia-timing { background: #ffe066; color: #222; }
+    #radixtrie-timing { background: #2ecc40; color: #fff; }
+    .search-section.modifiedradix {
+      display: none;
+    }
+    /* Loader spinner styles */
+    .loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 2.5em;
+    }
+    .loader-spinner {
+      border: 4px solid #e0e6ed;
+      border-top: 4px solid #4f8cff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 0.8s linear infinite;
+    }
+    .search-section.trie .loader-spinner {
+      border-top: 4px solid #ff9800;
+    }
+    .search-section.patricia .loader-spinner {
+      border-top: 4px solid #ffe066;
+    }
+    .search-section.radixt .loader-spinner {
+      border-top: 4px solid #ffe066;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Show Results checkbox styling */
+    .show-results-label {
+      margin-left: 1em;
+      font-size: 1.13em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 500;
+      color: #2a3a4a;
+      transition: color 0.2s;
+    }
+    .show-results-label:hover, .show-results-label:focus-within {
+      color: #4f8cff;
+    }
+    .show-results-checkbox {
+      width: 1.35em;
+      height: 1.35em;
+      accent-color: #4f8cff;
+      border-radius: 5px;
+      border: 1.5px solid #bfc7d1;
+      box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+      margin: 0;
+      transition: border 0.2s;
+    }
+    .show-results-checkbox:focus {
+      outline: 2px solid #4f8cff;
+      border-color: #4f8cff;
+    }
+    /* Show Results button styling for columns */
+    .show-results-btn {
+      padding: 0.5em 1.1em;
+      font-size: 1em;
+      border-radius: 7px;
+      border: 1.5px solid #bfc7d1;
+      background: #f4f6fb;
+      color: #2a3a4a;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border 0.2s, color 0.2s;
+      margin-bottom: 0.7em;
+    }
+    .search-section.trie .show-results-btn {
+      border-color: #ff9800;
+      color: #ff9800;
+    }
+    .search-section.trie .show-results-btn:hover, .search-section.trie .show-results-btn.active {
+      background: #ff9800;
+      color: #fff;
+    }
+    .search-section.patricia .show-results-btn {
+      border-color: #ffe066;
+      color: #e6b800;
+    }
+    .search-section.patricia .show-results-btn:hover, .search-section.patricia .show-results-btn.active {
+      background: #ffe066;
+      color: #222;
+    }
+    .search-section.radixt .show-results-btn {
+      border-color: #2ecc40;
+      color: #2ecc40;
+    }
+    .search-section.radixt .show-results-btn:hover, .search-section.radixt .show-results-btn.active {
+      background: #2ecc40;
+      color: #fff;
+    }
+    /* Pagination styles */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .pagination-btn {
+      padding: 0.38em 1.2em;
+      font-size: 1.08em;
+      border-radius: 7px;
+      border: 2px solid #bfc7d1;
+      background: #f4f6fb;
+      color: #2a3a4a;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s, border 0.18s, color 0.18s, box-shadow 0.18s;
+      box-shadow: 0 1px 4px rgba(44,62,80,0.06);
+      outline: none;
+    }
+    .search-section.trie .pagination-btn {
+      border-color: #ff9800;
+      color: #ff9800;
+    }
+    .search-section.trie .pagination-btn:hover, .search-section.trie .pagination-btn:focus {
+      background: #ff9800;
+      color: #fff;
+      border-color: #ff9800;
+      box-shadow: 0 2px 8px rgba(255,152,0,0.13);
+    }
+    .search-section.patricia .pagination-btn {
+      border-color: #ffe066;
+      color: #e6b800;
+    }
+    .search-section.patricia .pagination-btn:hover, .search-section.patricia .pagination-btn:focus {
+      background: #ffe066;
+      color: #222;
+      border-color: #ffe066;
+      box-shadow: 0 2px 8px rgba(255,224,102,0.13);
+    }
+    .search-section.radixt .pagination-btn {
+      border-color: #2ecc40;
+      color: #2ecc40;
+    }
+    .search-section.radixt .pagination-btn:hover, .search-section.radixt .pagination-btn:focus {
+      background: #2ecc40;
+      color: #fff;
+      border-color: #2ecc40;
+      box-shadow: 0 2px 8px rgba(46,204,64,0.13);
+    }
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .pagination-info {
+      font-size: 1em;
+      color: #444;
+    }
+    /* Themed backgrounds for each column */
+    .search-section.trie {
+      background: #fff7e6;
+      border-color: #ff9800;
+    }
+    .search-section.patricia {
+      background: #fffbe6;
+      border-color: #ffe066;
+    }
+    .search-section.radixt {
+      background: #eaffea;
+      border-color: #2ecc40;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prefix Search: Trie vs Radix Tree vs Optimized Radix Tree</h1>
+  <div class="search-bar">
+    <input id="global-search-input" type="text" placeholder="Type a character to search all columns...">
+  </div>
+  <div>
+    <p style="text-align:center; margin-top:0.5em; color:#444; font-size:1.1em;">
+      <span style="color:#4f8cff;font-style:italic;">Total 369422 words are loaded in memory in all 3 datastructures</span>
+    </p>
+  </div>
+  <div class="container">
+    <div class="search-section trie">
+      <h2>Trie Search</h2>
+      <div id="trie-timing" class="timing"></div>
+      <button id="trie-show-results-btn" class="show-results-btn" style="margin-bottom:0.7em;">Show Results</button>
+      <ul id="trie-results"></ul>
+      <div id="trie-pagination" class="pagination"></div>
+    </div>
+    <div class="search-section patricia">
+      <h2>Radix Tree Search</h2>
+      <div id="patricia-timing" class="timing"></div>
+      <button id="patricia-show-results-btn" class="show-results-btn" style="margin-bottom:0.7em;">Show Results</button>
+      <ul id="patricia-results"></ul>
+      <div id="patricia-pagination" class="pagination"></div>
+    </div>
+    <div class="search-section radixt">
+      <h2>Optimized Radix Tree Search</h2>
+      <div id="radixtrie-timing" class="timing"></div>
+      <button id="radixtrie-show-results-btn" class="show-results-btn" style="margin-bottom:0.7em;">Show Results</button>
+      <ul id="radixtrie-results"></ul>
+      <div id="radixtrie-pagination" class="pagination"></div>
+    </div>
+  </div>
+  <script type="module">
+class Tree {
+    constructor() {
+        this.root = new RadixNode();
+        this.size = 0;
+    }
+    len() {
+        return this.size;
+    }
+    insert(key, value) {
+        const txn = new Txn(this.root, this.size);
+        const {newRoot, oldValue, updated} = txn.insert(this.root, key, key, value);
+        if (newRoot) this.root = newRoot;
+        if (!updated) this.size++;
+        return { tree: this, oldValue, updated };
+    }
+    delete(key) {
+        const txn = new Txn(this.root, this.size);
+        const [newRoot, oldLeaf] = txn.delete(this.root, key);
+        if (newRoot) this.root = newRoot;
+        if (oldLeaf) this.size--;
+        return { tree: this, oldValue: oldLeaf?.value || null, deleted: !!oldLeaf };
+    }
+    deletePrefix(prefix) {
+        const txn = new Txn(this.root, this.size);
+        const [newRoot, numDeletions] = txn.deletePrefix(this.root, prefix);
+        if (newRoot) this.root = newRoot;
+        this.size -= numDeletions;
+        return { tree: this, numDeletions };
+    }
+    get(key) {
+        return this.root.get(key);
+    }
+    getByPrefix(prefix) {
+        let iterator = new Iterator(this.root)
+        iterator.seekPrefix(prefix)
+        let res = []
+        while (true) {
+            let nextData = iterator.next()
+            if (nextData.found) {
+                res.push(nextData.key)
+                continue
+            }
+            break
+        }
+        return res
+    }
+    getByFuzzy(word, maxEditDistance, sortBy = 'DIST', limit = 100, offset = 0) {
+        // Not implemented in this inlined version
+        return [];
+    }
+}
+class Txn {
+    constructor(root, size) {
+        this.root = root;
+        this.size = size;
+    }
+    insert(node, key, search, value) {
+        if (search.length === 0) {
+            let oldValue = null;
+            let didUpdate = false;
+            if (node.leaf) {
+                oldValue = node.leaf.value;
+                didUpdate = true;
+            }
+            node.leaf = new RadixLeafNode(key, value);
+            node.computeLinks();
+            return { node, oldValue, didUpdate };
+        }
+        let index, child;
+        const ed = node.getEdge(search[0]);
+        if (ed) {
+            index = node.edges.map(e => e.label).indexOf(ed.label)
+            child = ed.node
+        }
+        if (!child) {
+            const leaf = new RadixLeafNode(key, value);
+            let newNode = new RadixNode(search)
+            newNode.leaf = leaf
+            newNode.leavesInSubtree = 1
+            newNode.minLeaf = leaf
+            newNode.maxLeaf = leaf
+            const newEdge = new RadixEdge(search[0], newNode)
+            node.addEdge(newEdge);
+            node.computeLinks();
+            return { node: node, oldValue: null, didUpdate: false };
+        }
+        const commonPrefix = longestPrefix(search, child.prefix);
+        if (commonPrefix === child.prefix.length) {
+            search = search.slice(commonPrefix);
+            const { node: newChild, oldValue, didUpdate } = this.insert(child, key, search, value);
+            if (newChild) {
+                node.edges[index].node = newChild;
+                node.computeLinks();
+                return { node, oldValue, didUpdate };
+            }
+            return { node: null, oldValue, didUpdate };
+        }
+        const splitNode = new RadixNode(search.slice(0, commonPrefix));
+        node.replaceEdge(new RadixEdge(search[0], splitNode));
+        splitNode.addEdge(new RadixEdge(
+            child.prefix[commonPrefix],
+            child
+        ));
+        child.prefix = child.prefix.slice(commonPrefix);
+        const leaf = new RadixLeafNode(key, value);
+        search = search.slice(commonPrefix);
+        if (search.length === 0) {
+            splitNode.leaf = leaf;
+            splitNode.leavesInSubtree = 1;
+            splitNode.minLeaf = leaf;
+            splitNode.maxLeaf = leaf;
+            splitNode.computeLinks();
+            return { node, oldValue: null, didUpdate: false };
+        }
+        let newNode = new RadixNode(search);
+        newNode.leaf = leaf
+        newNode.leavesInSubtree = 1
+        newNode.minLeaf = leaf
+        newNode.maxLeaf = leaf
+        splitNode.addEdge(new RadixEdge(search[0], newNode));
+        splitNode.computeLinks();
+        node.computeLinks();
+        return { node: node, oldValue: null, didUpdate: false };
+    }
+}
+class RadixLeafNode {
+    constructor(key, value) {
+        this.key = key;
+        this.value = value;
+        this.nextLeaf = null;
+        this.prevLeaf = null;
+    }
+    setNextLeaf(leaf) {
+        this.nextLeaf = leaf;
+    }
+    setPrevLeaf(leaf) {
+        this.prevLeaf = leaf;
+    }
+}
+class RadixEdge {
+    constructor(label, node) {
+        this.label = label;
+        this.node = node;
+    }
+}
+class RadixNode {
+    constructor(prefix = '') {
+        this.prefix = prefix;
+        this.edges = [];
+        this.leaf = null;
+        this.minLeaf = null;
+        this.maxLeaf = null;
+        this.leavesInSubtree = 0;
+    }
+    getEdge(char) {
+        return this.edges.find(edge => edge.label === char) || null;
+    }
+    replaceEdge(edge) {
+        const index = this.edges.findIndex(e => e.label >= edge.label);
+        if (index !== -1 && this.edges[index].label === edge.label) {
+            this.edges[index].node = edge.node;
+            return;
+        }
+        throw new Error("Replacing missing edge");
+    }
+    addEdge(edge) {
+        const index = this.edges.findIndex(e => e.label > edge.label);
+        if (index === -1) {
+            this.edges.push(edge);
+        } else {
+            this.edges.splice(index, 0, edge);
+        }
+        this.computeLinks();
+    }
+    delEdge(label) {
+        const index = this.edges.findIndex(e => e.label === label);
+        if (index !== -1) {
+            this.edges.splice(index, 1);
+            this.computeLinks();
+        }
+    }
+    updateMinMaxLeaves() {
+        this.minLeaf = null;
+        this.maxLeaf = null;
+        if (this.leaf) {
+            this.minLeaf = this.leaf;
+        } else if (this.edges.length > 0) {
+            this.minLeaf = this.edges[0].node.minLeaf;
+        }
+        if (this.edges.length > 0) {
+            this.maxLeaf = this.edges[this.edges.length - 1].node.maxLeaf;
+        }
+        if (!this.maxLeaf && this.leaf) {
+            this.maxLeaf = this.leaf;
+        }
+    }
+    computeLinks() {
+        this.updateMinMaxLeaves();
+        let count = this.leaf ? 1 : 0;
+        for (const edge of this.edges) {
+            if (edge.node) {
+                count += edge.node.leavesInSubtree;
+            }
+        }
+        this.leavesInSubtree = count;
+        if (this.edges.length > 0) {
+            if (this.minLeaf !== this.edges[0].node.minLeaf) {
+                this.minLeaf.setNextLeaf(this.edges[0].node.minLeaf);
+                if (this.edges[0].node.minLeaf) {
+                    this.edges[0].node.minLeaf.setPrevLeaf(this.minLeaf);
+                }
+            }
+        }
+        for (let i = 0; i < this.edges.length; i++) {
+            const maxLFirst = this.edges[i].node.maxLeaf;
+            let minLSecond = null;
+            if (i + 1 < this.edges.length) {
+                minLSecond = this.edges[i + 1].node.minLeaf;
+            }
+            if (maxLFirst) {
+                maxLFirst.setNextLeaf(minLSecond);
+            }
+            if (minLSecond) {
+                minLSecond.setPrevLeaf(maxLFirst);
+            }
+        }
+    }
+    minimumLeaf() {
+        return this.minLeaf
+    }
+    maximumLeaf() {
+        return this.maxLeaf
+    }
+}
+
+function longestPrefix(key1, key2) {
+    const maxLength = Math.min(key1.length, key2.length);
+    let i = 0;
+    while (i < maxLength && key1[i] === key2[i]) i++;
+    return i;
+}
+class Iterator {
+    constructor(node) {
+        this.node = node;
+        this.stack = [];
+        this.leafNode = null;
+        this.key = [];
+        this.seekLowerBound = false;
+        this.iterateCounter = 0;
+    }
+    seekPrefix(prefix) {
+        this.key = prefix;
+        let n = this.node;
+        let search = prefix;
+        while (true) {
+            if (search.length === 0) {
+                this.node = n;
+                this.iterateCounter = n && n.leavesInSubtree ? n.leavesInSubtree : 0;
+                return;
+            }
+            const edge = n.getEdge(search[0]);
+            if (!edge) {
+                this.node = null;
+                this.iterateCounter = 0;
+                return;
+            }
+            n = edge.node;
+            if (search.startsWith(n.prefix)) {
+                search = search.slice(n.prefix.length);
+            } else if (n.prefix.startsWith(search)) {
+                this.node = n;
+                this.iterateCounter = n && n.leavesInSubtree ? n.leavesInSubtree : 0;
+                return;
+            } else {
+                this.node = null;
+                this.iterateCounter = 0;
+                return;
+            }
+        }
+    }
+    next() {
+        if (this.node && !this.leafNode) {
+            this.leafNode = this.node.minLeaf;
+        }
+        if (this.leafNode && this.iterateCounter > 0) {
+            const res = this.leafNode;
+            this.leafNode = this.leafNode.nextLeaf;
+            this.iterateCounter--;
+            if (!this.leafNode) {
+                this.node = null;
+            }
+            return { key: res.key, found: true };
+        }
+        this.leafNode = null;
+        this.node = null;
+        return { key: null, found: false };
+    }
+}
+// ====== END: radix/iterator.js ======
+// ====== END: radix/radix.js ======
+
+    // ====== BEGIN: Patricia Tree Implementation ======
+    class PatriciaNode {
+      constructor(prefix = '') {
+        this.prefix = prefix;
+        this.children = [];
+        this.leaf = false;
+        this.key = ''
+      }
+      getEdge(char) {
+        return this.children.find(edge => edge.label === char) || null;
+      }
+      addEdge(edge) {
+        this.children.push(edge);
+        this.children.sort((a, b) => a.label.localeCompare(b.label));
+      }
+    }
+    class PatriciaEdge {
+      constructor(label, node) {
+        this.label = label;
+        this.node = node;
+      }
+    }
+    class PatriciaTree {
+      constructor() {
+        this.root = new PatriciaNode();
+      }
+      insert(word) {
+        let node = this.root;
+        let search = word;
+        while (true) {
+          if (search.length === 0) {
+            node.leaf = true;
+            node.key = word
+            return;
+          }
+          let edge = node.getEdge(search[0]);
+          if (!edge) {
+            // No edge, create new
+            const newNode = new PatriciaNode(search);
+            newNode.leaf = true;
+            newNode.key = word
+            node.addEdge(new PatriciaEdge(search[0], newNode));
+            return;
+          }
+          // Find common prefix
+          let child = edge.node;
+          let common = 0;
+          while (
+            common < child.prefix.length &&
+            common < search.length &&
+            child.prefix[common] === search[common]
+          ) {
+            common++;
+          }
+          if (common === child.prefix.length) {
+            // Full match, go deeper
+            node = child;
+            search = search.slice(common);
+            continue;
+          }
+          // Split node
+          const splitNode = new PatriciaNode(child.prefix.slice(0, common));
+          node.children = node.children.filter(e => e !== edge);
+          node.addEdge(new PatriciaEdge(splitNode.prefix[0], splitNode));
+          child.prefix = child.prefix.slice(common);
+          splitNode.addEdge(new PatriciaEdge(child.prefix[0], child));
+          if (common < search.length) {
+            const newNode = new PatriciaNode(search.slice(common));
+            newNode.leaf = true;
+            newNode.key = word
+            splitNode.addEdge(new PatriciaEdge(newNode.prefix[0], newNode));
+          } else {
+            splitNode.leaf = true;
+            splitNode.key = word
+          }
+          return;
+        }
+      }
+      iterator(prefix) {
+        const it = new PatriciaIterator(this.root);
+        it.started = false
+        it.seekPrefix(prefix);
+        return it;
+      }
+    }
+    class PatriciaIterator {
+      constructor(node) {
+        this.node = node;
+        this.stack = [];
+        this.started = false;
+        this.prefix = '';
+      }
+      seekPrefix(prefix) {
+        this.stack = [];
+        let n = this.node;
+        let search = prefix;
+        while (true) {
+          if (!n) {
+            this.node = null;
+            return;
+          }
+          if (search.length === 0) {
+            this.node = n;
+            return;
+          }
+          let edge = n.getEdge(search[0]);
+          if (!edge) {
+            this.node = null;
+            return;
+          }
+          let child = edge.node;
+          // Defensive: if child is null, set node to null and return
+          if (!child) {
+            this.node = null;
+            return;
+          }
+          if (search.startsWith(child.prefix)) {
+            search = search.slice(child.prefix.length);
+            n = child;
+          } else if (child.prefix.startsWith(search)) {
+            this.node = child;
+            return;
+          } else {
+            this.node = null;
+            return;
+          }
+        }
+      }
+      next() {
+        if (!this.node) return { value: undefined, done: true };
+        if (!this.started) {
+          this.stack.push({ node: this.node });
+          this.started = true;
+        }
+        while (this.stack.length > 0) {
+          const { node } = this.stack.pop();
+          // Push children in reverse order for pre-order traversal
+          for (let i = node.children.length - 1; i >= 0; i--) {
+            const edge = node.children[i];
+            this.stack.push({ node: edge.node });
+          }
+          if (node.leaf) {
+            return { value: node.key, done: false };
+          }
+        }
+        return { value: undefined, done: true };
+      }
+      [Symbol.iterator]() { return this; }
+    }
+    // ====== END: Patricia Tree Implementation ======
+
+    // Trie implementation from user
+    class Node {
+      constructor() {
+        this.end = false;
+        this.children = {};
+      }
+    }
+    class Trie {
+      constructor() {
+        this.root = new Node();
+      }
+      insert(str, idx = 0, node = this.root) {
+        if (idx === str.length) {
+          node.end = true;
+          return;
+        }
+        let key = str.toLowerCase()[idx];
+        if (!node.children[key]) {
+          node.children[key] = new Node();
+        }
+        this.insert(str, ++idx, node.children[key]);
+      }
+      getAllWords(currentWord = "", words = [], node = this.root) {
+        if (node.end) {
+          words.push(currentWord);
+        }
+        for (const letter in node.children) {
+          this.getAllWords(currentWord + letter, words, node.children[letter]);
+        }
+        return words;
+      }
+      autoComplete(str) {
+        if (str === "") return this.getAllWords();
+        let node = this.root;
+        str = str.toLowerCase();
+        for (let i = 0; i < str.length; i++) {
+          const char = str[i];
+          if (!node.children[char]) {
+            return [];
+          }
+          node = node.children[char];
+        }
+        return this.getAllWords(str, [], node);
+      }
+    }
+
+    // Load words from words.txt
+    async function loadWords() {  
+      const response = await fetch('https://raw.githubusercontent.com/asheshvidyut/words/refs/heads/main/words.txt');
+      const text = await response.text();
+      return text.split('\n');
+    }
+
+    // Initialize everything
+    let words, trie, radixTrie, patriciaTree;
+    loadWords().then(wordList => {
+      words = wordList;
+      // Build Modified Radix Tree
+      // Build Trie
+      trie = new Trie();
+      for (const word of words) {
+        trie.insert(word);
+      }
+      // Build Radix Trie
+      radixTrie = new Tree();
+      for (const word of words) {
+        radixTrie.insert(word);
+      }
+      // Build Patricia Tree
+      patriciaTree = new PatriciaTree();
+      for (const word of words) {
+        patriciaTree.insert(word);
+      }
+      // Trigger initial search for blank string (without showing loader)
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          performSearch("");
+        }, 0);
+      }
+    });
+
+    // Remove debounce and input event listener
+    // document.getElementById('global-search-input').addEventListener('input', debounce(async function() {
+    //   await search(this.value);
+    // }, 200));
+
+    // Store last results for each column
+    window._lastTrieResults = [];
+    window._lastPatriciaResults = [];
+    window._lastRadixResults = [];
+    const RESULTS_PER_PAGE = 50;
+    window._triePage = 1;
+    window._patriciaPage = 1;
+    window._radixPage = 1;
+
+    function renderResults(column) {
+      let results = [];
+      let page = 1;
+      let resultsBox, paginationBox;
+      if (column === 'trie') {
+        results = window._lastTrieResults || [];
+        page = window._triePage;
+        resultsBox = document.getElementById('trie-results');
+        paginationBox = document.getElementById('trie-pagination');
+      } else if (column === 'patricia') {
+        results = window._lastPatriciaResults || [];
+        page = window._patriciaPage;
+        resultsBox = document.getElementById('patricia-results');
+        paginationBox = document.getElementById('patricia-pagination');
+      } else if (column === 'radixtrie') {
+        results = window._lastRadixResults || [];
+        page = window._radixPage;
+        resultsBox = document.getElementById('radixtrie-results');
+        paginationBox = document.getElementById('radixtrie-pagination');
+      }
+      if (!resultsBox || !paginationBox) return;
+      const totalPages = Math.max(1, Math.ceil(results.length / RESULTS_PER_PAGE));
+      page = Math.max(1, Math.min(page, totalPages));
+      // Store back the clamped page
+      if (column === 'trie') window._triePage = page;
+      if (column === 'patricia') window._patriciaPage = page;
+      if (column === 'radixtrie') window._radixPage = page;
+      const start = (page - 1) * RESULTS_PER_PAGE;
+      const end = start + RESULTS_PER_PAGE;
+      const pageResults = results.slice(start, end);
+      resultsBox.innerHTML = pageResults.map(w => `<li>${w}</li>`).join('');
+      // Pagination controls
+      paginationBox.innerHTML = '';
+      if (totalPages > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Previous';
+        prevBtn.disabled = page === 1;
+        prevBtn.className = 'pagination-btn';
+        prevBtn.onclick = function() {
+          if (column === 'trie') window._triePage--;
+          if (column === 'patricia') window._patriciaPage--;
+          if (column === 'radixtrie') window._radixPage--;
+          renderResults(column);
+        };
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next';
+        nextBtn.disabled = page === totalPages;
+        nextBtn.className = 'pagination-btn';
+        nextBtn.onclick = function() {
+          if (column === 'trie') window._triePage++;
+          if (column === 'patricia') window._patriciaPage++;
+          if (column === 'radixtrie') window._radixPage++;
+          renderResults(column);
+        };
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${page} of ${totalPages}`;
+        pageInfo.className = 'pagination-info';
+        paginationBox.appendChild(prevBtn);
+        paginationBox.appendChild(pageInfo);
+        paginationBox.appendChild(nextBtn);
+      }
+    }
+
+    function performSearch(prefix, showLoader = false) {
+      // Per-column show results state
+      const showTrieResults = window._showTrieResults ?? false;
+      const showPatriciaResults = window._showPatriciaResults ?? false;
+      const showRadixResults = window._showRadixResults ?? false;
+      // Get DOM refs
+      const trieTimingBox = document.getElementById('trie-timing');
+      const trieResultsBox = document.getElementById('trie-results');
+      const patriciaTimingBox = document.getElementById('patricia-timing');
+      const patriciaResultsBox = document.getElementById('patricia-results');
+      const radixTimingBox = document.getElementById('radixtrie-timing');
+      const radixResultsBox = document.getElementById('radixtrie-results');
+      // Show loaders if needed
+      if (showLoader) trieResultsBox.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
+      if (showLoader) patriciaResultsBox.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
+      if (showLoader) radixResultsBox.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
+      // Always clear only the results, not the timer
+      if (!showTrieResults && !showLoader) trieResultsBox.innerHTML = '';
+      if (!showPatriciaResults && !showLoader) patriciaResultsBox.innerHTML = '';
+      if (!showRadixResults && !showLoader) radixResultsBox.innerHTML = '';
+      // Always update timers unless data structure is not ready
+      setTimeout(() => {
+        Promise.all([
+          // Trie
+          new Promise(resolve => {
+            if (!trie) {
+              trieResultsBox.innerHTML = '';
+              trieTimingBox.textContent = '';
+              window._lastTrieResults = [];
+              return resolve();
+            }
+            let total = 0, results = [];
+            const t0 = performance.now();
+            results = trie.autoComplete(prefix);
+            const t1 = performance.now();
+            total += (t1 - t0);
+            window._lastTrieResults = results;
+            if (showTrieResults) {
+              renderResults('trie');
+            } else if (!showLoader) {
+              trieResultsBox.innerHTML = '';
+              document.getElementById('trie-pagination').innerHTML = '';
+            }
+            trieTimingBox.textContent = `\u23f1 ${ total.toFixed(2) } ms | Results: ${results.length}`;
+            resolve();
+          }),
+          // Patricia
+          new Promise(resolve => {
+            if (!patriciaTree) {
+              patriciaResultsBox.innerHTML = '';
+              patriciaTimingBox.textContent = '';
+              window._lastPatriciaResults = [];
+              return resolve();
+            }
+            let total = 0, results = [];
+            const t0 = performance.now();
+            const it = patriciaTree.iterator(prefix);
+            results = [];
+            let next = it.next();
+            while (!next.done) {
+              results.push(next.value);
+              next = it.next();
+            }
+            const t1 = performance.now();
+            total += (t1 - t0);
+            window._lastPatriciaResults = results;
+            if (showPatriciaResults) {
+              renderResults('patricia');
+            } else if (!showLoader) {
+              patriciaResultsBox.innerHTML = '';
+              document.getElementById('patricia-pagination').innerHTML = '';
+            }
+            patriciaTimingBox.textContent = `⏱ ${ total.toFixed(2) } ms | Results: ${results.length}`;
+            resolve();
+          }),
+          // Radix
+          new Promise(resolve => {
+            if (!radixTrie) {
+              radixResultsBox.innerHTML = '';
+              radixTimingBox.textContent = '';
+              window._lastRadixResults = [];
+              return resolve();
+            }
+            let total = 0, results = [];
+            const t0 = performance.now();
+            results = radixTrie.getByPrefix(prefix);
+            const t1 = performance.now();
+            total += (t1 - t0);
+            window._lastRadixResults = results;
+            if (showRadixResults) {
+              renderResults('radixtrie');
+            } else if (!showLoader) {
+              radixResultsBox.innerHTML = '';
+              document.getElementById('radixtrie-pagination').innerHTML = '';
+            }
+            radixTimingBox.textContent = `\u23f1 ${ total.toFixed(2) } ms | Results: ${results.length}`;
+            resolve();
+          })
+        ]);
+      }, showLoader ? 0 : 1);
+    }
+
+    // Add event listener for input/checkbox to trigger search
+    document.getElementById('global-search-input').addEventListener('input', function() {
+      window._triePage = 1;
+      window._patriciaPage = 1;
+      window._radixPage = 1;
+      performSearch(this.value);
+    });
+    // Per-column show results button logic
+    function toggleShowResults(column) {
+      if (column === 'trie') {
+        window._showTrieResults = !window._showTrieResults;
+        document.getElementById('trie-show-results-btn').classList.toggle('active', window._showTrieResults);
+        if (window._showTrieResults) {
+          renderResults('trie');
+        } else {
+          document.getElementById('trie-results').innerHTML = '';
+          document.getElementById('trie-pagination').innerHTML = '';
+        }
+      } else if (column === 'patricia') {
+        window._showPatriciaResults = !window._showPatriciaResults;
+        document.getElementById('patricia-show-results-btn').classList.toggle('active', window._showPatriciaResults);
+        if (window._showPatriciaResults) {
+          renderResults('patricia');
+        } else {
+          document.getElementById('patricia-results').innerHTML = '';
+          document.getElementById('patricia-pagination').innerHTML = '';
+        }
+      } else if (column === 'radixtrie') {
+        window._showRadixResults = !window._showRadixResults;
+        document.getElementById('radixtrie-show-results-btn').classList.toggle('active', window._showRadixResults);
+        if (window._showRadixResults) {
+          renderResults('radixtrie');
+        } else {
+          document.getElementById('radixtrie-results').innerHTML = '';
+          document.getElementById('radixtrie-pagination').innerHTML = '';
+        }
+      }
+    }
+    document.getElementById('trie-show-results-btn').addEventListener('click', function() { toggleShowResults('trie'); });
+    document.getElementById('patricia-show-results-btn').addEventListener('click', function() { toggleShowResults('patricia'); });
+    document.getElementById('radixtrie-show-results-btn').addEventListener('click', function() { toggleShowResults('radixtrie'); });
+    // Optionally, add a button for accessibility
+    // document.getElementById('global-search-btn').addEventListener('click', function() {
+    //   const prefix = document.getElementById('global-search-input').value;
+    //   performSearch(prefix, true);
+    // });
+
+    // Initialize all columns to hide results by default
+    window._showTrieResults = false;
+    window._showPatriciaResults = false;
+    window._showRadixResults = false;
+
+  </script>
+</body>
+</html> 
